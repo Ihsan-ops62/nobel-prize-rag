@@ -6,7 +6,7 @@ from utils import load_csv_data, create_text_splitter
 from tqdm import tqdm
 import config
 
-
+# Ingestion pipeline to process CSV, create embeddings, and store in Chroma DB
 class IngestionPipeline:
     def __init__(self):
         # Initialize embeddings
@@ -32,19 +32,19 @@ class IngestionPipeline:
                     self.vectorstore.persist()
                     self.vectorstore = None
             except Exception as e:
-                print(f"⚠️ Warning closing vectorstore: {e}")
+                print(f" Warning closing vectorstore: {e}")
 
             # Attempt to remove folder
             try:
                 shutil.rmtree(config.CHROMA_PERSIST_DIRECTORY)
-                print("🗑️ Existing Chroma DB cleared")
+                print(" Existing Chroma DB cleared")
             except PermissionError:
-                print("⚠️ Could not delete Chroma DB. Make sure no process is using it (Streamlit, Python, Explorer).")
+                print(" Could not delete Chroma DB. Make sure no process is using it (Streamlit, Python, Explorer).")
                 return
 
         os.makedirs(config.CHROMA_PERSIST_DIRECTORY, exist_ok=True)
-        print("✅ Chroma DB directory ready")
-
+        print(" Chroma DB directory ready")
+    
     def process_csv_row_by_row(self, csv_path: str):
         """Process CSV into Document chunks"""
         documents = load_csv_data(
@@ -61,7 +61,7 @@ class IngestionPipeline:
                 chunk.metadata["chunk_id"] = f"{doc.metadata.get('row_index', 0)}_{i}"
             all_chunks.extend(chunks)
 
-        print(f"✅ Created {len(all_chunks)} chunks from {len(documents)} documents")
+        print(f" Created {len(all_chunks)} chunks from {len(documents)} documents")
         return all_chunks
 
     def create_and_store_embeddings(self, chunks):
@@ -82,20 +82,20 @@ class IngestionPipeline:
             else:
                 self.vectorstore.add_documents(batch)
 
-        print(f"✅ Successfully stored {len(chunks)} chunks in Chroma DB")
+        print(f" Successfully stored {len(chunks)} chunks in Chroma DB")
         return self.vectorstore
 
     def run(self, csv_path: str):
         """Run the complete ingestion pipeline"""
         if not os.path.exists(csv_path):
-            print(f"❌ CSV file not found: {csv_path}")
+            print(f" CSV file not found: {csv_path}")
             return None
 
-        print("🏆 Running data ingestion pipeline...")
+        print(" Running data ingestion pipeline...")
         self.clear_existing_db()
         chunks = self.process_csv_row_by_row(csv_path)
         if not chunks:
-            print("❌ No chunks created from CSV")
+            print(" No chunks created from CSV")
             return None
 
         return self.create_and_store_embeddings(chunks)
